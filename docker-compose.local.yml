@@ -1,0 +1,136 @@
+version: '3.8'
+
+networks:
+  alpha-tech:
+    driver: bridge
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=alpha_user
+      - POSTGRES_PASSWORD=alpha123
+      - POSTGRES_MULTIPLE_DATABASES=alpha_tech_db,location_db,notifications_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
+    networks:
+      - alpha-tech
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alpha_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend Principal
+  backend:
+    build: ./Alpha_Tech/backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USERNAME=alpha_user
+      - DATABASE_PASSWORD=alpha123
+      - DATABASE_NAME=alpha_tech_db
+      - JWT_SECRET=alpha_tech_jwt_secret_key_2024
+      - FRONTEND_URL=http://localhost:5173
+      - LOCATION_SERVICE_URL=http://location-service:3002
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3003
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - alpha-tech
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Location Service
+  location-service:
+    build: ./location-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USERNAME=alpha_user
+      - DATABASE_PASSWORD=alpha123
+      - DATABASE_NAME=location_db
+      - JWT_SECRET=alpha_tech_jwt_secret_key_2024
+      - FRONTEND_URL=http://localhost:5173
+      - BACKEND_URL=http://backend:3000
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3003
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - alpha-tech
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Notification Service
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USERNAME=alpha_user
+      - DATABASE_PASSWORD=alpha123
+      - DATABASE_NAME=notifications_db
+      - JWT_SECRET=alpha_tech_jwt_secret_key_2024
+      - FRONTEND_URL=http://localhost:5173
+      - BACKEND_URL=http://backend:3000
+      - LOCATION_SERVICE_URL=http://location-service:3002
+      - WEBSOCKET_CORS_ORIGIN=http://localhost:5173
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - alpha-tech
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Frontend React
+  frontend:
+    build: ./Alpha_Tech/frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3000
+      - VITE_LOCATION_API_URL=http://localhost:3002
+      - VITE_NOTIFICATION_API_URL=http://localhost:3003
+      - VITE_WEBSOCKET_URL=ws://localhost:3003
+    depends_on:
+      backend:
+        condition: service_healthy
+      location-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    networks:
+      - alpha-tech
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
