@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   alpha-tech:
     driver: bridge
@@ -28,7 +26,7 @@ services:
 
   # Backend Principal
   backend:
-    build: ./Alpha_Tech/backend
+    build: ./alpha-tech-backend
     ports:
       - "3000:3000"
     environment:
@@ -38,6 +36,11 @@ services:
       - DATABASE_USERNAME=alpha_user
       - DATABASE_PASSWORD=alpha123
       - DATABASE_NAME=alpha_tech_db
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=alpha_user
+      - DB_PASSWORD=alpha123
+      - DB_NAME=alpha_tech_db
       - JWT_SECRET=alpha_tech_jwt_secret_key_2024
       - FRONTEND_URL=http://localhost:5173
       - LOCATION_SERVICE_URL=http://location-service:3002
@@ -56,16 +59,16 @@ services:
 
   # Location Service
   location-service:
-    build: ./location-service
+    build: ./alpha-tech-location
     ports:
       - "3002:3002"
     environment:
       - NODE_ENV=development
-      - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_USERNAME=alpha_user
-      - DATABASE_PASSWORD=alpha123
-      - DATABASE_NAME=location_db
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=alpha_user
+      - DB_PASSWORD=alpha123
+      - DB_NAME=location_db
       - JWT_SECRET=alpha_tech_jwt_secret_key_2024
       - FRONTEND_URL=http://localhost:5173
       - BACKEND_URL=http://backend:3000
@@ -84,16 +87,16 @@ services:
 
   # Notification Service
   notification-service:
-    build: ./notification-service
+    build: ./alpha-tech-notifications
     ports:
       - "3003:3003"
     environment:
       - NODE_ENV=development
-      - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_USERNAME=alpha_user
-      - DATABASE_PASSWORD=alpha123
-      - DATABASE_NAME=notifications_db
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=alpha_user
+      - DB_PASSWORD=alpha123
+      - DB_NAME=notifications_db
       - JWT_SECRET=alpha_tech_jwt_secret_key_2024
       - FRONTEND_URL=http://localhost:5173
       - BACKEND_URL=http://backend:3000
@@ -113,7 +116,7 @@ services:
 
   # Frontend React
   frontend:
-    build: ./Alpha_Tech/frontend
+    build: ./alpha-tech-frontend
     ports:
       - "5173:5173"
     environment:
@@ -122,12 +125,9 @@ services:
       - VITE_NOTIFICATION_API_URL=http://localhost:3003
       - VITE_WEBSOCKET_URL=ws://localhost:3003
     depends_on:
-      backend:
-        condition: service_healthy
-      location-service:
-        condition: service_healthy
-      notification-service:
-        condition: service_healthy
+      - backend
+      - location-service
+      - notification-service
     networks:
       - alpha-tech
     restart: unless-stopped

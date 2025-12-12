@@ -45,6 +45,15 @@ else
     cd alpha-tech-notifications && git pull && cd ..
 fi
 
+# Frontend
+if [ ! -d "alpha-tech-frontend" ]; then
+    git clone https://github.com/Alpha-tech-Riwi/alpha-tech-frontend.git
+    log_success "Frontend cloned"
+else
+    log_info "Frontend already exists, pulling latest..."
+    cd alpha-tech-frontend && git pull && cd ..
+fi
+
 # Create symlinks for docker-compose
 log_info "Creating symlinks for Docker Compose..."
 ln -sf alpha-tech-backend Alpha_Tech 2>/dev/null || true

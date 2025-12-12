@@ -1,0 +1,21 @@
+# Microservices directories - each has its own repo
+alpha-tech-backend/
+alpha-tech-frontend/
+alpha-tech-location/
+alpha-tech-notifications/
+backup/
+location-service/
+notification-service/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+Thumbs.db
