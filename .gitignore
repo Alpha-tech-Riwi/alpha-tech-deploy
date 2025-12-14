@@ -3,9 +3,13 @@ alpha-tech-backend/
 alpha-tech-frontend/
 alpha-tech-location/
 alpha-tech-notifications/
+alpha-tech-auth-service/
+alpha-tech-file-service/
+alpha-tech-qr-service/
+alpha-tech-mobile-service/
+alpha-tech-mobile-app/
+alpha-tech-collar-firmware/
 backup/
-location-service/
-notification-service/
 
 # Environment files
 .env

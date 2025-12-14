@@ -11,8 +11,8 @@ PURPLE='\033[0;35m'
 NC='\033[0m'
 
 # Collar configuration
-COLLAR_ID="2025"
-PET_ID="kelmin-pet-id"
+COLLAR_ID="123"
+PET_ID="741cac7a-a2e8-4fd1-abdd-878942d5c927"
 LOST_MODE=false
 SOUND_ENABLED=false
 LIGHT_ENABLED=false
@@ -56,7 +56,7 @@ simulate_lost_mode_alerts() {
             
             # Simulate QR scan
             sleep 2
-            curl -s "https://prefers-cheapest-blues-parental.trycloudflare.com/qr/found/PETD9DB6E1B" > /dev/null 2>&1
+            curl -s "https://interesting-civilization-beauty-decided.trycloudflare.com/qr/found/PETD9DB6E1B" > /dev/null 2>&1
             echo -e "${GREEN}   📱 QR Code scanned successfully!${NC}"
             echo -e "${GREEN}   🔔 Owner notification sent!${NC}"
         fi
@@ -76,7 +76,7 @@ send_sensor_data() {
     echo "   🏃 Activity: ${activity_level}/10"
     echo "   🔋 Battery: ${battery_level}%"
     
-    curl -s -X POST "http://localhost:3000/sensor-data/collar/${COLLAR_ID}" \
+    curl -s -X POST "https://interesting-civilization-beauty-decided.trycloudflare.com/sensor-data/collar/${COLLAR_ID}" \
         -H "Content-Type: application/json" \
         -d "{
             \"heartRate\": ${heart_rate},
@@ -108,7 +108,7 @@ send_gps_location() {
         echo -e "   ${GREEN}✅ Inside safe zone${NC}"
     fi
     
-    curl -s -X POST "http://localhost:3002/location/collar/${COLLAR_ID}/position" \
+    curl -s -X POST "https://nobody-advancement-charleston-latitude.trycloudflare.com/location/collar/${COLLAR_ID}/position" \
         -H "Content-Type: application/json" \
         -d "{
             \"collarId\": \"${COLLAR_ID}\",
@@ -152,7 +152,7 @@ show_help() {
 
 # Main simulation
 echo -e "${BLUE}Starting Interactive ESP32 Collar Simulation${NC}"
-echo -e "${BLUE}Collar ID: ${COLLAR_ID} | Pet: Kelmin${NC}"
+echo -e "${BLUE}Collar ID: ${COLLAR_ID} | Pet: Max (Pastor Alemán)${NC}"
 echo ""
 show_help
 echo ""
@@ -198,7 +198,7 @@ while true; do
             ;;
         [Qq])
             echo ""
-            echo -e "${PURPLE}🏷️ QR URL: https://prefers-cheapest-blues-parental.trycloudflare.com/qr/found/PETD9DB6E1B${NC}"
+            echo -e "${PURPLE}🏷️ QR URL: https://interesting-civilization-beauty-decided.trycloudflare.com/qr/found/PETD9DB6E1B${NC}"
             ;;
         [Hh])
             echo ""

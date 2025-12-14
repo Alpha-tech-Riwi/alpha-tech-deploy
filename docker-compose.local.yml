@@ -3,13 +3,29 @@ networks:
     driver: bridge
 
 services:
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - alpha-tech
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     environment:
       - POSTGRES_USER=alpha_user
       - POSTGRES_PASSWORD=alpha123
-      - POSTGRES_MULTIPLE_DATABASES=alpha_tech_db,location_db,notifications_db
+      - POSTGRES_MULTIPLE_DATABASES=alpha_tech_db,location_db,notifications_db,auth_db,files_db
     ports:
       - "5432:5432"
     volumes:
@@ -45,8 +61,14 @@ services:
       - FRONTEND_URL=http://localhost:5173
       - LOCATION_SERVICE_URL=http://location-service:3002
       - NOTIFICATION_SERVICE_URL=http://notification-service:3003
+      - AUTH_SERVICE_URL=http://auth-service:3005
+      - FILE_SERVICE_URL=http://file-service:3006
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - alpha-tech
@@ -114,6 +136,100 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # Auth Service
+  auth-service:
+    build: ./alpha-tech-auth-service
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=alpha_user
+      - DB_PASSWORD=alpha123
+      - DB_NAME=auth_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=alpha_tech_jwt_secret_key_2024
+      - CORS_ORIGIN=http://localhost:5173
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - alpha-tech
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/api/v1/auth/validate"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # File Storage Service
+  file-service:
+    build: ./alpha-tech-file-service
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=development
+      - PORT=3006
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=alpha_user
+      - DB_PASSWORD=alpha123
+      - DB_NAME=files_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - STORAGE_PATH=/app/storage
+      - FILE_SERVICE_URL=http://localhost:3006
+      - CORS_ORIGIN=http://localhost:5173
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - alpha-tech
+    volumes:
+      - file_storage:/app/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/api/v1/files/user/00000000-0000-0000-0000-000000000000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # QR Service
+  qr-service:
+    build: ./alpha-tech-qr-service
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=development
+      - PORT=3004
+    networks:
+      - alpha-tech
+    restart: unless-stopped
+
+  # Mobile Service
+  mobile-service:
+    build: ./alpha-tech-mobile-service
+    ports:
+      - "3007:3007"
+    environment:
+      - NODE_ENV=development
+      - PORT=3007
+      - BACKEND_URL=http://backend:3000
+      - LOCATION_SERVICE_URL=http://location-service:3002
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3003
+    depends_on:
+      - backend
+    networks:
+      - alpha-tech
+    restart: unless-stopped
+
   # Frontend React
   frontend:
     build: ./alpha-tech-frontend
@@ -126,6 +242,7 @@ services:
       - VITE_WEBSOCKET_URL=ws://localhost:3003
     depends_on:
       - backend
+      - auth-service
       - location-service
       - notification-service
     networks:
@@ -134,3 +251,5 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
+  file_storage:

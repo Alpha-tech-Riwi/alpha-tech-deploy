@@ -10,8 +10,9 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 # Collar configuration
-COLLAR_ID="2025"  # Kelmin's collar ID
-PET_ID="kelmin-pet-id"  # Kelmin's pet ID
+COLLAR_ID="123"  # Max's collar ID
+PET_ID="741cac7a-a2e8-4fd1-abdd-878942d5c927"  # Max's pet ID
+USER_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlMDMyNjY5YS1hMjkwLTQxODYtYTM4NC0zNjUwZWJjZTZjODkiLCJlbWFpbCI6Im5vYWgxMjNAbWFpbC5jb20iLCJpYXQiOjE3NjU3MTczNDgsImV4cCI6MTc2NTgwMzc0OH0.OH8oFR-6bbY2-1dzM6kTRaIPsrpnaTfOG-sqSn6uFi8"  # User JWT token
 LOST_MODE=false  # Lost mode status
 SOUND_ENABLED=false  # Sound alerts enabled
 LIGHT_ENABLED=false  # Light alerts enabled
@@ -35,7 +36,7 @@ LOCATIONS_OUTSIDE=(
     "6.247500,-75.592500"  # Fuera de zona segura - Suroeste
 )
 
-# Simulate realistic sensor data for Kelmin (Doberman)
+# Simulate realistic sensor data for Max (Pastor Alemán)
 simulate_sensor_data() {
     local heart_rate=$((80 + RANDOM % 50))      # 80-130 bpm (larger dog)
     local temperature=$((380 + RANDOM % 20))    # 38.0-40.0°C (in tenths)
@@ -48,6 +49,7 @@ simulate_sensor_data() {
     echo "   Activity: ${activity_level}/10"
     echo "   Battery: ${battery_level}%"
     
+    # Send to main endpoint
     curl -s -X POST "http://localhost:3000/sensor-data/collar/${COLLAR_ID}" \
         -H "Content-Type: application/json" \
         -d "{
@@ -56,6 +58,17 @@ simulate_sensor_data() {
             \"activityLevel\": ${activity_level},
             \"batteryLevel\": ${battery_level},
             \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)\"
+        }" > /dev/null
+    
+    # Send to latest endpoint for APK
+    curl -s -X PUT "http://localhost:3000/sensor-data/collar/${COLLAR_ID}/latest" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"heartRate\": ${heart_rate},
+            \"temperature\": $((temperature/10)).$((temperature%10)),
+            \"activityLevel\": ${activity_level},
+            \"batteryLevel\": ${battery_level},
+            \"lastUpdate\": \"$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)\"
         }" > /dev/null
     
     if [ $? -eq 0 ]; then
@@ -111,11 +124,11 @@ simulate_gps_location() {
                 -d "{
                     \"type\": \"GEOFENCE_ALERT\",
                     \"title\": \"Alerta de Geofence\",
-                    \"message\": \"¡Kelmin ha salido de la zona segura! Ubicación: ${lat}, ${lng}\",
+                    \"message\": \"¡Max ha salido de la zona segura! Ubicación: ${lat}, ${lng}\",
                     \"priority\": \"HIGH\",
-                    \"ownerId\": \"6cfc0a78-f926-4993-b88a-c45d17e94487\",
-                    \"petId\": \"c9233072-2116-4b8f-87c3-d332893a7f43\",
-                    \"petName\": \"kelmin\",
+                    \"ownerId\": \"e032669a-a290-4186-a384-3650ebce6c89\",
+                    \"petId\": \"741cac7a-a2e8-4fd1-abdd-878942d5c927\",
+                    \"petName\": \"max\",
                     \"collarId\": \"${COLLAR_ID}\"
                 }" > /dev/null
             echo -e "${GREEN}   ✅ Geofence alert sent${NC}"
@@ -128,10 +141,10 @@ simulate_gps_location() {
 # Simulate emergency notification
 simulate_emergency_notification() {
     local notifications=(
-        "Geofence Alert: Kelmin has left the safe zone!"
+        "Geofence Alert: Max has left the safe zone!"
         "Health Alert: Elevated heart rate detected (130 bpm)"
         "Battery Warning: Collar battery is low (15%)"
-        "Activity Alert: Kelmin has been inactive for 2 hours"
+        "Activity Alert: Max has been inactive for 2 hours"
         "Temperature Alert: High body temperature detected (40.5°C)"
     )
     
@@ -150,9 +163,9 @@ simulate_emergency_notification() {
             \"title\": \"Alpha Tech Alert\",
             \"message\": \"${notification}\",
             \"priority\": \"HIGH\",
-            \"ownerId\": \"6cfc0a78-f926-4993-b88a-c45d17e94487\",
-            \"petId\": \"c9233072-2116-4b8f-87c3-d332893a7f43\",
-            \"petName\": \"kelmin\",
+            \"ownerId\": \"e032669a-a290-4186-a384-3650ebce6c89\",
+            \"petId\": \"741cac7a-a2e8-4fd1-abdd-878942d5c927\",
+            \"petName\": \"max\",
             \"collarId\": \"${COLLAR_ID}\"
         }" > /dev/null
     
@@ -186,7 +199,7 @@ simulate_lost_mode_alerts() {
             echo -e "${GREEN}   Simulating QR scan...${NC}"
             
             # Simulate QR scan
-            curl -s "https://prefers-cheapest-blues-parental.trycloudflare.com/qr/found/PETD9DB6E1B" > /dev/null
+            curl -s "http://localhost:3004/qr/found/PETD9DB6E1B" > /dev/null
             echo -e "${GREEN}   ✅ QR Code scanned - Owner notified!${NC}"
         fi
     fi
@@ -207,7 +220,7 @@ check_lost_mode_commands() {
 }
 
 # Main simulation loop
-echo -e "${BLUE}Starting ESP32 collar simulation for Kelmin (Collar ID: ${COLLAR_ID})${NC}"
+echo -e "${BLUE}Starting ESP32 collar simulation for Max (Collar ID: ${COLLAR_ID})${NC}"
 echo -e "${BLUE}Simulating real-time data every 10 seconds...${NC}"
 echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
 echo -e "${YELLOW}Commands: Press 'L' + Enter to toggle Lost Mode${NC}"
